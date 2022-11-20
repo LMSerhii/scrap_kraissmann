@@ -179,10 +179,36 @@ def download_img():
                         time.sleep(7)
 
 
+def download_text():
+    """ """
+    with open("all_data.json", "r", encoding='utf-8') as file:
+        src = json.load(file)
+    count = 0
+    total_items_count = src['total_items_count']
+    category_items = src['category_items']
+    for category_item in category_items:
+        subcategory_items = category_item['subcategory_items']
+        for subcategory_item in subcategory_items:
+            subcategory_cards = subcategory_item['subcategory_cards']
+            for subcategory_card in subcategory_cards:
+                product_name_translit = subcategory_card['product_name_translit']
+                description_html = subcategory_card['description_html']
+                specification_html = subcategory_card['specification_html']
+
+                if not os.path.exists(f"data/{product_name_translit}"):
+                    os.mkdir(f"data/{product_name_translit}")
+
+                with open(f"data/{product_name_translit}/{product_name_translit}.txt", "w", encoding='utf-8') as file:
+                    file.write(f"{description_html}\n\n\n{specification_html}")
+                count += 1
+
+                print(f"File: {count}/{total_items_count} is completed")
+
 
 def main():
     # get_data()
-    download_img()
+    # download_img()
+    download_text()
 
 
 if __name__ == '__main__':
