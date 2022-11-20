@@ -1,16 +1,27 @@
 import json
+import time
+import os
+from random import randrange
 
 import requests
 
 from bs4 import BeautifulSoup
 
+from proxy_auth import ip_port, login, password
+
+proxies = {
+    "https": f"http://{login}:{password}@{ip_port}"
+}
+
+headers = {
+    "accept": "*/*",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+}
+
 
 def get_data():
     """ """
-    headers = {
-        "accept": "*/*",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
-    }
+
     all_data = {}
     total_items_count = 0
     total_images_count = 0
@@ -130,8 +141,48 @@ def get_data():
         json.dump(all_data, file, indent=4, ensure_ascii=False)
 
 
+def download_img():
+    """  """
+
+    with open("all_data.json", "r", encoding='utf-8') as file:
+        src = json.load(file)
+    count = 0
+    total_images_count = src['total_images_count']
+    category_items = src['category_items']
+    for category_item in category_items:
+        subcategory_items = category_item['subcategory_items']
+        for subcategory_item in subcategory_items:
+            subcategory_cards = subcategory_item['subcategory_cards']
+            for subcategory_card in subcategory_cards:
+                product_image_links = subcategory_card['product_image_links']
+                product_name_translit = subcategory_card['product_name_translit']
+
+                if not os.path.exists(f"data/{product_name_translit}"):
+                    os.mkdir(f"data/{product_name_translit}")
+
+                try:
+                    instruction_link = subcategory_card['instruction_link']
+                    response = requests.get(url=instruction_link, headers=headers, proxies=proxies)
+                    with open(f"data/{product_name_translit}/{product_name_translit}.pdf", "wb") as file:
+                        file.write(response.content)
+                except Exception:
+                    pass
+
+                for index, product_image_link in enumerate(product_image_links):
+                    response = requests.get(url=product_image_link, headers=headers, proxies=proxies)
+                    with open(f"data/{product_name_translit}/{product_name_translit}_{index}.jpg", "wb") as file:
+                        file.write(response.content)
+
+                    count += 1
+                    print(f"image {count}/{total_images_count} is downloaded")
+                time.sleep(randrange(2, 5))
+            time.sleep(randrange(2, 5))
+        time.sleep(randrange(2, 5))
+
+
 def main():
-    get_data()
+    # get_data()
+    download_img()
 
 
 if __name__ == '__main__':
