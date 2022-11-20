@@ -11,7 +11,9 @@ def get_data():
         "accept": "*/*",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
     }
-
+    all_data = {}
+    total_items_count = 0
+    total_images_count = 0
     category_items = []
     with requests.Session() as session:
 
@@ -49,7 +51,6 @@ def get_data():
 
                 subcategory_link = subcategory.select_one('a').get('href')
                 subcategory_name_translit = subcategory_link.split("/")[-2]
-                # print(subcategory_name)
                 subcategory_dict['subcategory_name'] = subcategory_name_translit
 
                 subcategory_link_to_image = subcategory.select_one("a img").get("src")
@@ -58,12 +59,12 @@ def get_data():
                 response = session.get(url=subcategory_link, headers=headers)
                 soup = BeautifulSoup(response.text, 'lxml')
                 products = soup.find_all("div", class_="product-thumb")
+                total_items_count += len(products)
 
                 cards = []
                 for index, product in enumerate(products):
 
                     product_link = product.select_one("div.caption").select_one("h4 a").get('href')
-                    # print(product_link)
 
                     response = session.get(url=product_link, headers=headers)
                     soup = BeautifulSoup(response.text, 'lxml')
@@ -71,24 +72,21 @@ def get_data():
                     card = {}
 
                     product_name_translit = product_link.split("/")[-1]
-                    # print(product_name_translit)
                     card['product_name_translit'] = product_name_translit
 
                     specification_html = soup.find("div", id="tab-specification")
-                    # print(specification_html)
                     card['specification_html'] = str(specification_html)
 
                     description_html = soup.find("div", id="tab-description")
-                    # print(description_html)
                     card['description_html'] = str(description_html)
 
                     images_links_search = soup.find("ul", class_="thumbnails").find_all("li")
                     product_image_links = [link.find("a").get('href') for link in images_links_search]
-                    # print(product_image_links)
                     card['product_image_links'] = product_image_links
 
+                    total_images_count += len(product_image_links)
+
                     product_name = soup.find("div", class_="col-sm-7").find("h1").text
-                    # print(product_name)
                     card['product_name'] = product_name
 
                     table = soup.find("table", class_="table table-bordered table-striped")
@@ -97,14 +95,12 @@ def get_data():
                     theads = table.find_all("thead")
                     for thead in theads:
                         title = thead.find("td").text
-                        # print(title)
                         trs = specification_html.find("tbody").find_all("tr")
                         spec = {}
                         for tr in trs:
                             tds = tr.find_all("td")
                             k = tds[0].text
                             v = tds[1].text
-                            # print(f"{k} - {v}")
                             spec[k] = v
                         specifications[title] = spec
 
@@ -115,7 +111,6 @@ def get_data():
                     except Exception:
                         instruction_link = None
                     card['instruction_link'] = instruction_link
-                    # print(instruction_link)
 
                     cards.append(card)
 
@@ -127,8 +122,12 @@ def get_data():
             category['subcategory_items'] = subcategory_items
             category_items.append(category)
 
+    all_data['category_items'] = category_items
+    all_data['total_items_count'] = total_items_count
+    all_data['total_images_count'] = total_images_count
+
     with open("all_data.json", "w", encoding="utf-8") as file:
-        json.dump(category_items, file, indent=4, ensure_ascii=False)
+        json.dump(all_data, file, indent=4, ensure_ascii=False)
 
 
 def main():
