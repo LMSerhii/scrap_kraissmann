@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 from bs4 import BeautifulSoup
@@ -5,81 +7,128 @@ from bs4 import BeautifulSoup
 
 def get_data():
     """ """
-    all_url = []
-    category_list = []
-
     headers = {
         "accept": "*/*",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
     }
 
-    url = "https://kraissmann.com/akumulyatorni-instrumenti/"
+    category_items = []
+    with requests.Session() as session:
 
-    response = requests.get(url=url, headers=headers)
+        urls = [
+            "https://kraissmann.com/akumulyatorni-instrumenti/",
+            "https://kraissmann.com/sadovij-instrument-ta-obladnannya/",
+            "https://kraissmann.com/vidrizannya-shlifuvannya-frezeruvannya/",
+            "https://kraissmann.com/sverdlinnya-zagvinchuvannya-dovbannya-zmishuvannya/",
+            "https://kraissmann.com/pili/",
+            "https://kraissmann.com/stacionarni-mashini/",
+            "https://kraissmann.com/ochishuvalne-obladnannya/",
+            "https://kraissmann.com/pidjomne-obladnannya/",
+            "https://kraissmann.com/vimiryuvalna-tehnika/",
+            "https://kraissmann.com/pobutove-obladnannya/",
+            "https://kraissmann.com/vsmoktuvannya-ta-vidalennya-pilu/",
+            "https://kraissmann.com/budivelnij-instrument/"
+        ]
 
-    soup = BeautifulSoup(response.text, "lxml")
-    subcategories = soup.find_all("div", class_="col-sm-3 catimg")
-    all_data = []
-    subcategory_link_to_images = []
-    for subcategory in subcategories[:1]:
-        subcategory_link_to_image = subcategory.select_one("a img").get("src")
-        subcategory_link_to_images.append(subcategory_link_to_image)
+        for url in urls:
 
-        subcategory_link = subcategory.select_one('a').get('href')
-        subcategory_name = subcategory_link.split("/")[-2]
-        # print(subcategory_name)
+            category = {}
 
-        with requests.Session() as session:
+            response = session.get(url=url, headers=headers)
 
-            response = session.get(url=subcategory_link, headers=headers)
-            soup = BeautifulSoup(response.text, 'lxml')
-            products = soup.find_all("div", class_="product-thumb")
-            cards = []
-            for product in products[:1]:
+            soup = BeautifulSoup(response.text, "lxml")
+            subcategories = soup.find_all("div", class_="col-sm-3 catimg")
 
-                product_link = product.select_one("div.caption").select_one("h4 a").get('href')
-                # print(product_link)
+            category_name_translit = url.split("/")[-2]
+            category['category_name_translit'] = category_name_translit
 
-                response = session.get(url=product_link, headers=headers)
+            subcategory_items = []
+            for subcategory in subcategories:
+
+                subcategory_dict = {}
+
+                subcategory_link = subcategory.select_one('a').get('href')
+                subcategory_name_translit = subcategory_link.split("/")[-2]
+                # print(subcategory_name)
+                subcategory_dict['subcategory_name'] = subcategory_name_translit
+
+                subcategory_link_to_image = subcategory.select_one("a img").get("src")
+                subcategory_dict['subcategory_link_to_image'] = subcategory_link_to_image
+
+                response = session.get(url=subcategory_link, headers=headers)
                 soup = BeautifulSoup(response.text, 'lxml')
+                products = soup.find_all("div", class_="product-thumb")
 
-                product_name_translit = product_link.split("/")[-1]
-                # print(product_name)
+                cards = []
+                for index, product in enumerate(products):
 
-                specification_html = soup.find("div", id="tab-specification")
-                # print(specification)
+                    product_link = product.select_one("div.caption").select_one("h4 a").get('href')
+                    # print(product_link)
 
-                description_html = soup.find("div", id="tab-description")
-                # print(description)
+                    response = session.get(url=product_link, headers=headers)
+                    soup = BeautifulSoup(response.text, 'lxml')
 
-                images_links_search = soup.find("ul", class_="thumbnails").find_all("li")
-                product_image_links = [link.find("a").get('href') for link in images_links_search]
-                # print(product_image_links)
+                    card = {}
 
-                product_name = soup.find("div", class_="col-sm-7").find("h1").text
-                # print(product_name)
+                    product_name_translit = product_link.split("/")[-1]
+                    # print(product_name_translit)
+                    card['product_name_translit'] = product_name_translit
 
-                table = soup.find("table", class_="table table-bordered table-striped")
+                    specification_html = soup.find("div", id="tab-specification")
+                    # print(specification_html)
+                    card['specification_html'] = str(specification_html)
 
-                specifications = {}
-                theads = table.find_all("thead")
-                for thead in theads:
-                    title = thead.find("td").text
-                    # print(title)
-                    trs = specification_html.find("tbody").find_all("tr")
-                    spec = {}
-                    for tr in trs:
-                        tds = tr.find_all("td")
-                        k = tds[0].text
-                        v = tds[1].text
-                        # print(f"{k} - {v}")
-                        spec[k] = v
-                    specifications[title] = spec
+                    description_html = soup.find("div", id="tab-description")
+                    # print(description_html)
+                    card['description_html'] = str(description_html)
 
-                try:
-                    instruction_link = soup.find("span", class_="dname").find("a").get('href')
-                except Exception:
-                    instruction_link = None
+                    images_links_search = soup.find("ul", class_="thumbnails").find_all("li")
+                    product_image_links = [link.find("a").get('href') for link in images_links_search]
+                    # print(product_image_links)
+                    card['product_image_links'] = product_image_links
+
+                    product_name = soup.find("div", class_="col-sm-7").find("h1").text
+                    # print(product_name)
+                    card['product_name'] = product_name
+
+                    table = soup.find("table", class_="table table-bordered table-striped")
+
+                    specifications = {}
+                    theads = table.find_all("thead")
+                    for thead in theads:
+                        title = thead.find("td").text
+                        # print(title)
+                        trs = specification_html.find("tbody").find_all("tr")
+                        spec = {}
+                        for tr in trs:
+                            tds = tr.find_all("td")
+                            k = tds[0].text
+                            v = tds[1].text
+                            # print(f"{k} - {v}")
+                            spec[k] = v
+                        specifications[title] = spec
+
+                    card['specifications'] = specifications
+
+                    try:
+                        instruction_link = soup.find("span", class_="dname").find("a").get('href')
+                    except Exception:
+                        instruction_link = None
+                    card['instruction_link'] = instruction_link
+                    # print(instruction_link)
+
+                    cards.append(card)
+
+                    print(f"Page: {index + 1}/{len(products)} in {subcategory_name_translit} is completed")
+
+                subcategory_dict['subcategory_cards'] = cards
+                subcategory_items.append(subcategory_dict)
+
+            category['subcategory_items'] = subcategory_items
+            category_items.append(category)
+
+    with open("all_data.json", "w", encoding="utf-8") as file:
+        json.dump(category_items, file, indent=4, ensure_ascii=False)
 
 
 def main():
