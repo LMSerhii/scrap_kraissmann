@@ -76,6 +76,11 @@ def get_data():
                         spec[k] = v
                     specifications[title] = spec
 
+                try:
+                    instruction_link = soup.find("span", class_="dname").find("a").get('href')
+                except Exception:
+                    instruction_link = None
+
 
 def main():
     get_data()
