@@ -1,7 +1,6 @@
 import json
 import time
 import os
-from random import randrange
 
 import requests
 
@@ -175,9 +174,10 @@ def download_img():
 
                     count += 1
                     print(f"image {count}/{total_images_count} is downloaded")
-                time.sleep(randrange(2, 5))
-            time.sleep(randrange(2, 5))
-        time.sleep(randrange(2, 5))
+
+                    if count % 25 == 0:
+                        time.sleep(7)
+
 
 
 def main():
