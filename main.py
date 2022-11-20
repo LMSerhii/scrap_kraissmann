@@ -57,15 +57,24 @@ def get_data():
                 # print(product_image_links)
 
                 product_name = soup.find("div", class_="col-sm-7").find("h1").text
-                print(product_name)
+                # print(product_name)
 
-                specification = {}
-                trs = specification_html.find("tbody").find_all("tr")
-                for tr in trs:
-                    tds = tr.find_all("td")
-                    k = tds[0].text
-                    v = tds[1].text
-                    print(f"{k} - {v}")
+                table = soup.find("table", class_="table table-bordered table-striped")
+
+                specifications = {}
+                theads = table.find_all("thead")
+                for thead in theads:
+                    title = thead.find("td").text
+                    # print(title)
+                    trs = specification_html.find("tbody").find_all("tr")
+                    spec = {}
+                    for tr in trs:
+                        tds = tr.find_all("td")
+                        k = tds[0].text
+                        v = tds[1].text
+                        # print(f"{k} - {v}")
+                        spec[k] = v
+                    specifications[title] = spec
 
 
 def main():
